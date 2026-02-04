@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameHub - 30種類のゲーム＆賭け事</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <!-- ログイン・登録モーダル -->
+  <div id="authModal" class="modal active">
+    <div class="modal-content auth-container">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">ログイン</button>
+        <button class="auth-tab" data-tab="register">新規登録</button>
+      </div>
+      
+      <!-- ログインフォーム -->
+      <form id="loginForm" class="auth-form active">
+        <h2>ログイン</h2>
+        <input type="email" id="loginEmail" placeholder="メールアドレス" required>
+        <input type="password" id="loginPassword" placeholder="パスワード" required>
+        <button type="submit" class="btn-primary">ログイン</button>
+        <div class="error-message" id="loginError"></div>
+      </form>
+      
+      <!-- 登録フォーム -->
+      <form id="registerForm" class="auth-form">
+        <h2>新規登録</h2>
+        <input type="text" id="registerUsername" placeholder="ユーザー名" required>
+        <input type="email" id="registerEmail" placeholder="メールアドレス" required>
+        <input type="password" id="registerPassword" placeholder="パスワード" required>
+        <button type="submit" class="btn-primary">登録</button>
+        <div class="error-message" id="registerError"></div>
+      </form>
+      
+      <!-- 認証コード入力 -->
+      <form id="verifyForm" class="auth-form">
+        <h2>メール認証</h2>
+        <div class="info-box">
+          <p><strong>開発環境:</strong> 認証コードは画面上とサーバーコンソールに表示されます</p>
+          <p><strong>本番環境:</strong> メールで送信されます</p>
+        </div>
+        <input type="text" id="verifyCode" placeholder="認証コード（6文字）" required maxlength="6">
+        <button type="submit" class="btn-primary">認証</button>
+        <div class="error-message" id="verifyError"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- メインコンテナ -->
+  <div id="mainApp" class="hidden">
+    <!-- サイドバー -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h1>🎮 GameHub</h1>
+        <button id="sidebarToggle" class="sidebar-toggle">
+          <span class="toggle-icon">☰</span>
+        </button>
+      </div>
+      
+      <div class="user-info">
+        <div class="avatar">👤</div>
+        <div class="user-details">
+          <div class="username" id="usernameDisplay"></div>
+          <div class="stats-quick">
+            <span id="quickWins">0</span>勝 / 
+            <span id="quickLosses">0</span>敗
+          </div>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-header" data-section="hub">
+            <span>🏠 ホーム</span>
+          </div>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-header" data-section="board">
+            <span>♟️ ボードゲーム</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="nav-items collapsed">
+            <button class="nav-item" data-game="chess">チェス</button>
+            <button class="nav-item" data-game="shogi">将棋</button>
+            <button class="nav-item" data-game="go">囲碁</button>
+            <button class="nav-item" data-game="reversi">リバーシ</button>
+            <button class="nav-item" data-game="checkers">チェッカー</button>
+            <button class="nav-item" data-game="backgammon">バックギャモン</button>
+            <button class="nav-item" data-game="tic-tac-toe">三目並べ</button>
+            <button class="nav-item" data-game="connect4">四目並べ</button>
+          </div>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-header" data-section="card">
+            <span>🃏 カードゲーム</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="nav-items collapsed">
+            <button class="nav-item" data-game="poker">ポーカー</button>
+            <button class="nav-item" data-game="blackjack">ブラックジャック</button>
+            <button class="nav-item" data-game="baccarat">バカラ</button>
+            <button class="nav-item" data-game="uno">UNO</button>
+            <button class="nav-item" data-game="hearts">ハーツ</button>
+            <button class="nav-item" data-game="spades">スペード</button>
+            <button class="nav-item" data-game="bridge">ブリッジ</button>
+          </div>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-header" data-section="casino">
+            <span>🎰 カジノ</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="nav-items collapsed">
+            <button class="nav-item" data-game="roulette">ルーレット</button>
+            <button class="nav-item" data-game="slots">スロット</button>
+            <button class="nav-item" data-game="craps">クラップス</button>
+            <button class="nav-item" data-game="sicbo">大小</button>
+            <button class="nav-item" data-game="keno">キノ</button>
+          </div>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-header" data-section="dice">
+            <span>🎲 サイコロ</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="nav-items collapsed">
+            <button class="nav-item" data-game="liar-dice">ライアーズダイス</button>
+            <button class="nav-item" data-game="yahtzee">ヤッツィー</button>
+            <button class="nav-item" data-game="farkle">ファークル</button>
+            <button class="nav-item" data-game="cho-han">丁半</button>
+          </div>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-header" data-section="other">
+            <span>🎯 その他</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="nav-items collapsed">
+            <button class="nav-item" data-game="mahjong">麻雀</button>
+            <button class="nav-item" data-game="dominoes">ドミノ</button>
+            <button class="nav-item" data-game="minesweeper">マインスイーパー</button>
+            <button class="nav-item" data-game="sudoku">数独</button>
+            <button class="nav-item" data-game="2048">2048</button>
+          </div>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-header" data-section="stats">
+            <span>📊 統計</span>
+          </div>
+        </div>
+        
+        <button class="logout-btn" id="logoutBtn">ログアウト</button>
+      </nav>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main id="mainContent" class="main-content">
+      <!-- ハブページ -->
+      <div id="hubPage" class="page active">
+        <div class="hub-header">
+          <h1>ようこそ、GameHubへ！</h1>
+          <p>30種類以上のゲームで遊び、AIと対戦しよう</p>
+        </div>
+        
+        <div class="game-categories">
+          <div class="category-card" data-section="board">
+            <div class="category-icon">♟️</div>
+            <h3>ボードゲーム</h3>
+            <p>8種類の戦略ゲーム</p>
+          </div>
+          
+          <div class="category-card" data-section="card">
+            <div class="category-icon">🃏</div>
+            <h3>カードゲーム</h3>
+            <p>7種類のカードゲーム</p>
+          </div>
+          
+          <div class="category-card" data-section="casino">
+            <div class="category-icon">🎰</div>
+            <h3>カジノゲーム</h3>
+            <p>5種類のカジノゲーム</p>
+          </div>
+          
+          <div class="category-card" data-section="dice">
+            <div class="category-icon">🎲</div>
+            <h3>サイコロゲーム</h3>
+            <p>4種類のダイスゲーム</p>
+          </div>
+          
+          <div class="category-card" data-section="other">
+            <div class="category-icon">🎯</div>
+            <h3>その他</h3>
+            <p>6種類のパズル＆ゲーム</p>
+          </div>
+        </div>
+        
+        <div class="recent-games">
+          <h2>最近プレイしたゲーム</h2>
+          <div id="recentGamesList" class="recent-list">
+            <p>まだゲームをプレイしていません</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ゲームページ -->
+      <div id="gamePage" class="page">
+        <div class="game-header">
+          <button id="backBtn" class="btn-back">← 戻る</button>
+          <h2 id="gameTitle"></h2>
+          <div class="game-mode">
+            <button class="mode-btn active" data-mode="ai">🤖 AI対戦</button>
+            <button class="mode-btn" data-mode="online">🌐 オンライン対戦</button>
+          </div>
+        </div>
+        
+        <div id="gameContainer" class="game-container">
+          <!-- ゲームごとのUIがここに表示される -->
+        </div>
+      </div>
+      
+      <!-- 統計ページ -->
+      <div id="statsPage" class="page">
+        <h1>📊 あなたの統計</h1>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="totalGames">0</div>
+            <div class="stat-label">総ゲーム数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="totalWins">0</div>
+            <div class="stat-label">勝利</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="totalLosses">0</div>
+            <div class="stat-label">敗北</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="totalDraws">0</div>
+            <div class="stat-label">引き分け</div>
+          </div>
+          <div class="stat-card large">
+            <div class="stat-value" id="winRate">0%</div>
+            <div class="stat-label">勝率</div>
+          </div>
+        </div>
+        
+        <div class="game-history">
+          <h2>最近のゲーム履歴</h2>
+          <div id="gameHistoryList" class="history-list">
+            <p class="no-data">まだゲームをプレイしていません</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
